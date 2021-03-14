@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>City Weather</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/5.0.0-alpha1/css/bootstrap.min.css" integrity="sha384-r4NyP46KrjDleawBgD5tp8Y7UzmLA05oM1iAEQ17CSuDqnUK2+k9luXQOfXJCJ4I" crossorigin="anonymous">
+    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=cd3dbf6655f60f59189ec37e3888925b"></script>
+    <script type="text/javascript" src="city.list.json"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/5.0.0-alpha1/js/bootstrap.min.js" integrity="sha384-oesi62hOLfzrys4LxRF63OJCXdXDipiYWBnvTl9Y9/TRlw5xlKIEHpNyvvDShgf/" crossorigin="anonymous"></script>
+    <style>
+        /* header */
+        .header{
+            height: 170px;
+            background-color: deepskyblue;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .area-weather-wrapper{
+            margin-right: 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* main */
+        .main{
+            background-color: white;
+            display: flex;
+            /* justify-content: space-between; */
+            margin: 80px 150px;
+            min-width: 720px;
+        }
+        .day-weather-component-border{
+            display: flex;
+            margin: 80px 20px 30px 200px;
+            padding: 20px 40px;
+            border: 3px solid gray;
+            border-radius: 20px;
+        }
+        .day-temp-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-right: 170px;
+        }
+        .day-temp{
+            font-size: 50px;
+            text-align: center;
+        }
+        .day-image-wrapper{
+            width: 180px;
+            height: 180px;
+        }
+        .day-image-wrapper > img{
+            width: 100%;
+        }
+        .day-information-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 30px;
+        }
+        .day-information-location,
+        .day-information-humidity {
+            display: flex;
+            align-items: center;
+        }
+        .day-information-humidity{
+            margin-top: 8px;
+        }
+        .day-information-text{
+            margin-left: 8px;
+            margin-bottom: 6px;
+        }
+        .map-border{
+            border: 2px solid blue;
+        }
+
+        @media all and (max-width: 768px){
+            .main-header{
+                display: none;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <header class="header mb-4">
+        <div></div>
+        <h1 style="color:ghostwhite; margin-left: 210px; min-width: 200px;">City Weather</h1>
+        <div class="area-weather-wrapper">
+            <div class="btn-group country-option">
+                <input type="radio" class="btn-check" name="options" id="option1" autocomplete="off" value="KR" checked/>
+                <label class="btn btn-secondary" for="option1">KR</label>
+              
+                <input type="radio" class="btn-check" name="options" id="option2" autocomplete="off" value="JP"/>
+                <label class="btn btn-secondary" for="option2">JP</label>
+              
+                <input type="radio" class="btn-check" name="options" id="option3" autocomplete="off" value="CN"/>
+                <label class="btn btn-secondary" for="option3">CN</label>
+            </div>
+            <select class="form-select form-select-lg area-weather" aria-label=".form-select-lg example">
+                <option selected>Select City</option>
+            </select>
+        </div>
+
+    </header>
+    <main class="main">
+
+        <div id="map" style="width: 500px; height: 450px;"></div>
+        <div class="day-weather-component">
+            <!-- 온도 및 날씨 이미지 부분 -->
+            <!-- 위치 -->
+        </div>
+    </main>
+
+    <script>
+        
+        const dayWeatherComponent = document.querySelector(".day-weather-component");
+        const areaWeather = document.querySelector(".area-weather");
+        let cityArray;
+
+        const cityComponent = (idx, cityName) => {
+                return `
+                <option value="${idx}">${cityName}</option>
+                `;
+        }
+
+        const getCity = async (countryCode) => {
+            try{
+                const cityList = await axios.get("/city.list.json");
+                
+                const {data} = cityList;
+                cityArray = data.reduce((acc, cur) => {
+                    const {country, name} = cur;
+                    if (country == countryCode) {
+                        acc.push(cur);
+                    }
+                    return acc;
+                }, [])
+
+                // console.log(cityArray);                
+                
+                let temp;
+                temp += `<option selected>Select ${countryCode} City</option>`;
+                cityArray.forEach((li, idx) => {
+                    temp += cityComponent(idx, li.name);
+                })
+                areaWeather.innerHTML = temp;
+            }catch(err){
+                console.log(err);
+            }
+        }
+        
+        function countryChecked() {
+            let resultOption;
+            const checkedOption = document.getElementsByName("options");
+            for (let i = 0; i < checkedOption.length; i++) {
+                if (checkedOption[i].checked == true) {
+                    resultOption = checkedOption[i].value;
+                }
+            }
+            // console.log(resultOption);
+            getCity(resultOption);
+        }
+        const countryOption = document.querySelector(".country-option");
+        countryChecked();
+        countryOption.addEventListener("click", countryChecked);
+
+        const matchIcon = (data) => {
+            console.log(data);
+            if(data === "Clear") return "./images/039-sun.png";
+            if(data === "Clouds") return "./images/001-cloud.png";
+            if(data === "Mist") return "./images/003-rainy.png";
+            if(data === "Rain") return "./images/004-rainy-1.png";
+            if(data === "Snow") return "./images/006-snowy.png";
+            if(data === "Thunderstorm") return "./images/008-storm.png";
+            if(data === "Drizzle") return "./images/031-snowflake.png";
+            if(data === "Atmosphere") return "./images/033-hurricane.png";
+            if(data === "Haze") return "./images/017-foog.png";
+            if(data === "Fog") return "./images/017-foog.png";
+        }
+
+        const dayTempContainer = (data) => {
+            const {weather} = data.current;
+            console.log(weather);
+            const {main} = weather[0];
+            const icon = matchIcon(main);
+            const {temp} = data.current;
+            const changeTemp = (temp - 273.15).toFixed(1);
+            return `
+            <div class="day-temp-container">
+                <div class="day-image-wrapper">
+                    <img src=${icon} alt="금일의 날씨"/>
+                    <div class="day-temp">${changeTemp}°</div>
+                </div>
+            </div>
+        `};
+
+        const dayInformationContainer = (data, cityName) => {
+            const {timezone} = data;
+            const {humidity} = data.current;
+        
+            return `
+            <div class="day-information-container">
+                <div class="day-information-location">
+                    <img src="./images/location.png" width="50px"/>
+                    <span class="day-information-text" style="font-size:40px;">${timezone}</span>
+                </div>
+
+                <div class="day-information-text" style="font-size:30px">${cityName}</div>
+                
+                <div class="day-information-humidity">
+                    <img src="./images/025-humidity.png" width="40px"/>
+                    <span class="day-information-text" style="font-size:35px">${humidity}%</span>
+                </div>
+            </div>
+        `};
+
+        const dayComponent = (data, cityName) => `
+            ${dayTempContainer(data)}
+            ${dayInformationContainer(data, cityName)}
+        `;
+        
+        function setMap(latitude, longitude) {
+            const mapContainer = document.querySelector("#map");
+            const mapOption = {
+                center: new kakao.maps.LatLng(latitude, longitude),
+                level: 5,
+            }
+            const map = new kakao.maps.Map(mapContainer, mapOption);
+
+            const markerPosition = new kakao.maps.LatLng(latitude, longitude);
+
+            const marker = new kakao.maps.Marker({
+                position: markerPosition
+            });
+
+            marker.setMap(map);
+        }
+
+
+        const getWeatherInfo = async (value) => {
+            try{
+                const {lon, lat} = cityArray[Number(value)].coord;
+                const {data} = await axios.get(
+                    `http://api.openweathermap.org/data/2.5/onecall?lat=${lat}&lon=${lon}&appid=a9008a71a4caa812dd54908075d28aef`);
+                
+                // console.log(data);
+                setMap(lat, lon);
+                const map = document.querySelector("#map");
+                map.classList.add("map-border");
+                dayWeatherComponent.classList.add("day-weather-component-border");
+                dayWeatherComponent.innerHTML = dayComponent(data, cityArray[Number(value)].name);
+
+            }catch(err){
+                console.log(err);
+            }
+        }
+
+        areaWeather.addEventListener("change", function(){
+            console.log(areaWeather.options);
+            console.log("선택한인덱스", areaWeather.selectedIndex);
+            let value = areaWeather.options[areaWeather.selectedIndex].value;
+            console.log(value);
+            getWeatherInfo(value);
+            let text = areaWeather.options[areaWeather.selectedIndex].text;
+            console.log(text);
+        });
+
+    </script>
+</body>
+</html>
